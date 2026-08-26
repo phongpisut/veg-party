@@ -99,9 +99,9 @@ export default function WheelOfFortune({ wheelSpins, me, onSpin }) {
           </motion.div>
         </div>
 
-        <div className="mt-4 text-center text-sm text-slate-300">
+        <div className="mt-4 text-center text-sm text-slate-600 dark:text-slate-300">
           {spinning ? (
-            <p className="flex items-center justify-center gap-2 text-slate-300">
+            <p className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-300">
               <span>Spinning for</span>
               <b>{last.name}</b>
               <span className="inline-block animate-spin">🎡</span>
@@ -123,12 +123,12 @@ export default function WheelOfFortune({ wheelSpins, me, onSpin }) {
       </div>
 
       {wheelSpins.length > 0 && (
-        <div className="mt-5 max-h-40 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
+        <div className="mt-5 max-h-40 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-100 p-3 text-sm dark:border-white/10 dark:bg-black/20">
           {[...wheelSpins].reverse().map((s) => (
             <div key={s.id} className="flex items-center gap-2">
               <span>{s.emoji}</span>
               <span className="font-semibold">{s.name}</span>
-              <span className="ml-auto text-slate-400">
+              <span className="ml-auto text-slate-500 dark:text-slate-400">
                 {SEGMENTS[segmentFromId(s.id, n)].label}
               </span>
             </div>

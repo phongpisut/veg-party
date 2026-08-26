@@ -3,15 +3,23 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+}
+html.dark {
   color-scheme: dark;
 }
 
 body {
   margin: 0;
   font-family: 'Sora', -apple-system, 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at 20% 10%, #e3f1ff 0%, #cfe6fb 45%, #b9d8f1 100%);
+  color: #0f172a;
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+html.dark body {
   background: radial-gradient(circle at 20% 10%, #1b3a5c 0%, #0b1e33 45%, #071122 100%);
   color: #e7f1ff;
-  min-height: 100vh;
 }
 
 h1, h2, h3 {

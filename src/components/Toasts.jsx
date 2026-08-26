@@ -14,7 +14,7 @@ export default function Toasts({ toasts }) {
           >
             <span className="text-xl">{user.emoji}</span>
             <span>
-              <b className="text-emerald-300">{user.name}</b> joined the party
+              <b className="text-emerald-600 dark:text-emerald-300">{user.name}</b> joined the party
             </span>
           </motion.div>
         ))}

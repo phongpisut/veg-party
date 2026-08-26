@@ -4,7 +4,7 @@ export default function OnlineUsers({ users }) {
   const list = [...users.values()]
   return (
     <GlowCard className="p-4">
-      <h3 className="text-xs uppercase tracking-widest text-slate-400">
+      <h3 className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
         Online · {list.length}
       </h3>
       <div className="mt-3 space-y-2">

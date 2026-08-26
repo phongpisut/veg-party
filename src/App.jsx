@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import JoinModal from './components/JoinModal'
 import DuckRace from './components/DuckRace'
 import WheelOfFortune from './components/WheelOfFortune'
+import Calendar from './components/Calendar'
 import OnlineUsers from './components/OnlineUsers'
 import Toasts from './components/Toasts'
+import ThemeToggle from './components/ThemeToggle'
 import { Sparkles } from './components/ui'
 import * as nostr from './nostr'
 import { DURATION, raceResult, makeDuck } from './gameState'
@@ -25,7 +27,18 @@ export default function App() {
   const [race, setRace] = useState(EMPTY_RACE)
   const [wheelSpins, setWheelSpins] = useState([])
   const [toasts, setToasts] = useState([])
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('drp_theme')
+    if (saved) return saved
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
   const seen = useRef(new Set())
+
+  // apply + persist theme
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    localStorage.setItem('drp_theme', theme)
+  }, [theme])
 
   const raceRef = useRef(race)
   raceRef.current = race
@@ -161,15 +174,18 @@ export default function App() {
       <Sparkles />
       <div className="relative mx-auto max-w-5xl px-4 py-8">
         <header className="mb-8 text-center">
+          <div className="flex items-center justify-end gap-2">
+            <ThemeToggle theme={theme} onToggle={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))} />
+          </div>
           <h1 className="text-4xl font-extrabold sm:text-5xl">
-            🦆 <span className="bg-gradient-to-r from-amber-200 via-pink-300 to-sky-300 bg-clip-text text-transparent">Duck River Party</span>
+            🦆 <span className="bg-gradient-to-r from-amber-500 via-pink-500 to-sky-500 dark:from-amber-200 dark:via-pink-300 dark:to-sky-300 bg-clip-text text-transparent">Duck River Party</span>
           </h1>
-          <p className="mt-2 text-slate-300">
-            A shared 10-second duck race + wheel of fortune, synced live over{' '}
-            <b className="text-sky-300">Nostr</b> ({nostr.RELAY.replace('wss://', '')})
+          <p className="mt-2 text-slate-600 dark:text-slate-300">
+            A shared 10-second duck race + wheel of fortune + calendar, synced live over{' '}
+            <b className="text-sky-600 dark:text-sky-300">Nostr</b> ({nostr.RELAY.replace('wss://', '')})
           </p>
           {me && (
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm">
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-4 py-1.5 text-sm dark:border-white/10 dark:bg-white/5">
               <span className="text-xl">{me.emoji}</span>
               <span className="font-semibold">{me.name}</span>
             </div>
@@ -180,13 +196,14 @@ export default function App() {
           <div className="lg:col-span-2 space-y-6">
             <DuckRace race={race} me={{ id: nostr.myPubkey, name: me?.name, emoji: me?.emoji }} canStart={canStart} onHostRace={createRace} onStart={startRace} />
             <WheelOfFortune wheelSpins={wheelSpins} me={{ id: nostr.myPubkey, name: me?.name, emoji: me?.emoji }} onSpin={() => nostr.publish('wheel_spin', { name: me.name, emoji: me.emoji })} />
+            <Calendar />
           </div>
           <div className="h-max">
             <OnlineUsers users={users} />
           </div>
         </div>
 
-        <footer className="mt-10 text-center text-xs text-slate-500">
+        <footer className="mt-10 text-center text-xs text-slate-500 dark:text-slate-500">
           Race positions are not sent over Nostr — every client calculates them
           from the shared race definition and start time, so everyone sees the same race.
         </footer>

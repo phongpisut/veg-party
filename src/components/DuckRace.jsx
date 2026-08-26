@@ -50,7 +50,7 @@ export default function DuckRace({ race, me, canStart, onHostRace, onStart }) {
 
       {race.status === 'idle' && (
         <div className="mt-4 space-y-3">
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             Host a race: give 2+ duck names separated by commas. Every client races
             the same 10s race — each duck gets a random speed condition, and the
             positions are computed locally.
@@ -58,7 +58,7 @@ export default function DuckRace({ race, me, canStart, onHostRace, onStart }) {
           <input
             value={editing}
             onChange={(e) => setEditing(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-white placeholder:text-slate-500 focus:border-amber-300 focus:outline-none"
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-amber-300 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
             placeholder="Quacky, Splash, Waddle, Ducky"
           />
           <ShimmerButton onClick={handleHost}>Create the Race →</ShimmerButton>
@@ -71,11 +71,11 @@ export default function DuckRace({ race, me, canStart, onHostRace, onStart }) {
           <div className="mt-4 text-center">
             {isHost ? (
               <>
-                <p className="mb-2 text-sm text-amber-200">You are the host.</p>
+                <p className="mb-2 text-sm text-amber-600 dark:text-amber-200">You are the host.</p>
                 <ShimmerButton onClick={onStart}>Start Race (10s) 🏁</ShimmerButton>
               </>
             ) : (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Waiting for host <b>{race.hostName}</b> to start…
               </p>
             )}
@@ -100,7 +100,7 @@ function StatusBadge({ race, remaining }) {
   if (race.status === 'racing') text = `${Math.ceil(remaining())}s left`
   if (race.status === 'finished') text = 'Race over'
   return (
-    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold tabular-nums">
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tabular-nums dark:bg-white/10">
       {text}
     </span>
   )
@@ -112,13 +112,13 @@ function Preview({ ducks }) {
       {ducks.map((d) => {
         const m = duckLabel(d)
         return (
-          <div key={d.id} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+          <div key={d.id} className="rounded-xl border border-slate-200 bg-white/60 p-3 text-center dark:border-white/10 dark:bg-white/5">
             <div className="text-3xl">🦆</div>
             <div className="mt-1 text-sm font-semibold">{d.name}</div>
             <span className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ background: m.color + '33', color: m.color }}>
               {m.label}
             </span>
-            <p className="mt-1 hidden text-[10px] text-slate-400 sm:block">{m.desc}</p>
+            <p className="mt-1 hidden text-[10px] text-slate-500 dark:text-slate-400 sm:block">{m.desc}</p>
           </div>
         )
       })}
@@ -180,7 +180,7 @@ function Track({ race, tables, finish, elapsed, hasCountdown }) {
           })}
         </div>
       </div>
-      <div className="mt-2 flex justify-between text-[11px] text-slate-400">
+      <div className="mt-2 flex justify-between text-[11px] text-slate-500 dark:text-slate-400">
         <span>Start</span>
         <span>⏱ {DURATION}s race · speeds + start time broadcast, positions client-calculated</span>
         <span>Finish</span>
@@ -192,11 +192,11 @@ function Track({ race, tables, finish, elapsed, hasCountdown }) {
 function Result({ race, ranking, isHost, onNewRace }) {
   return (
     <div className="mt-4 rounded-xl border border-amber-300/30 bg-amber-400/10 p-4">
-      <div className="flex items-center gap-2 text-amber-200">
+      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-200">
         <span className="text-2xl">🏆</span>
         <span className="font-bold">{ranking[0].name} wins!</span>
       </div>
-      <ol className="mt-2 list-inside list-decimal text-sm text-slate-300">
+      <ol className="mt-2 list-inside list-decimal text-sm text-slate-600 dark:text-slate-300">
         {ranking.slice(1).map((d) => (
           <li key={d.id}>{d.name}</li>
         ))}

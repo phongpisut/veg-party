@@ -1,0 +1,156 @@
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { GlowCard, GradientText, ShimmerButton } from './ui'
+
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+function key(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+export default function Calendar() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const [view, setView] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
+  const [selected, setSelected] = useState(today)
+  const [notes, setNotes] = useState(() => JSON.parse(localStorage.getItem('drp_notes') || '{}'))
+  const [draft, setDraft] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  const saveNotes = (next) => {
+    localStorage.setItem('drp_notes', JSON.stringify(next))
+    setNotes(next)
+  }
+
+  const selKey = key(selected)
+  const selText = notes[selKey] || ''
+
+  function openDay(d) {
+    setSelected(d)
+    setDraft(notes[key(d)] || '')
+    setSaved(false)
+  }
+
+  function saveNote() {
+    const next = { ...notes }
+    if (draft.trim()) next[selKey] = draft.trim()
+    else delete next[selKey]
+    saveNotes(next)
+    setSaved(true)
+  }
+
+  const year = view.getFullYear()
+  const month = view.getMonth()
+  const first = new Date(year, month, 1)
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells = []
+  const leading = first.getDay()
+  for (let i = 0; i < leading; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d))
+  while (cells.length % 7 !== 0) cells.push(null)
+
+  const shim = (dir) => setView(new Date(year, month + dir, 1))
+
+  return (
+    <GlowCard className="p-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">
+          <GradientText>📅 Party Calendar</GradientText>
+        </h2>
+      </div>
+
+      {/* header + nav */}
+      <div className="mt-4 flex items-center justify-between">
+        <button onClick={() => shim(-1)} className="rounded-lg border border-slate-300 bg-white/70 px-3 py-1 text-sm hover:bg-white dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15">
+          ‹
+        </button>
+        <div className="text-lg font-bold capitalize">
+          {MONTHS[month]} {year}
+        </div>
+        <button onClick={() => shim(1)} className="rounded-lg border border-slate-300 bg-white/70 px-3 py-1 text-sm hover:bg-white dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15">
+          ›
+        </button>
+      </div>
+
+      {/* weekday header */}
+      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        {WEEKDAYS.map((w) => (
+          <div key={w} className="py-1">{w}</div>
+        ))}
+      </div>
+
+      {/* day grid */}
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {cells.map((d, i) => {
+            if (!d) return <div key={'b' + i} />
+            const k = key(d)
+            const hasNote = !!notes[k]
+            const isToday = sameDay(d, today)
+            const isSel = sameDay(d, selected)
+            return (
+              <motion.button
+                key={k}
+                layout
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.7, opacity: 0 }}
+                onClick={() => openDay(d)}
+                className={`relative aspect-square rounded-xl text-sm font-medium transition ${
+                  isSel
+                    ? 'bg-gradient-to-br from-sky-500 to-cyan-400 text-white shadow-[0_0_14px_-2px_rgba(34,211,238,0.7)]'
+                    : 'border border-slate-200 bg-white/60 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'
+                }`}
+              >
+                <span className={isToday && !isSel ? 'font-bold text-sky-600 dark:text-sky-300' : ''}>{d.getDate()}</span>
+                {hasNote && (
+                  <span className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${isSel ? 'bg-white' : 'bg-amber-400'}`} />
+                )}
+              </motion.button>
+            )
+          })}
+        </AnimatePresence>
+      </div>
+
+      {/* note editor */}
+      <div className="mt-5 rounded-xl border border-slate-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
+        <div className="text-sm font-semibold">
+          Note for{' '}
+          <span className="text-sky-600 dark:text-sky-300">
+            {MONTHS[selected.getMonth()]} {selected.getDate()}, {selected.getFullYear()}
+          </span>
+        </div>
+        <textarea
+          value={draft}
+          onChange={(e) => { setDraft(e.target.value); setSaved(false) }}
+          rows={3}
+          placeholder="Write a note for this day… (auto-saved to this browser)"
+          className="mt-2 w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
+        />
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {saved ? '✓ Saved to localStorage' : selText ? draft !== selText ? 'Unsaved changes' : 'Saved to localStorage' : ''}
+          </span>
+          <div className="flex gap-2">
+            {selText && (
+              <button onClick={() => { setDraft(''); saveNote() }} className="rounded-lg border border-red-300/50 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-500/10 dark:border-red-400/30">
+                Delete
+              </button>
+            )}
+            <ShimmerButton onClick={saveNote} className="!px-4 !py-1.5 !text-xs">
+              Save Note
+            </ShimmerButton>
+          </div>
+        </div>
+      </div>
+    </GlowCard>
+  )
+}

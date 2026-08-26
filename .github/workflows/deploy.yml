@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: gh-pages
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,6 +20,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Read from the "gh-pages" environment variable (set under
+          # Settings > Environments > gh-pages > Environment variables).
+          VITE_GAME_TAG: ${{ vars.VITE_GAME_TAG }}
       # Pushes the built site to the gh-pages branch; you pick this branch
       # under Settings > Pages > Source "Deploy from a branch".
       - uses: peaceiris/actions-gh-pages@v4

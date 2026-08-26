@@ -1,9 +1,10 @@
+import { useMemo, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 
 // A few hand-rolled "magic ui" style primitives (animated gradient text,
 // shimmer surfaces, floating sparkles) tuned for light + dark themes.
 
-export function GradientText({ children, className = '' }) {
+export function GradientText({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <span
       className={`bg-gradient-to-r from-amber-500 via-pink-500 to-sky-500 dark:from-amber-200 dark:via-pink-300 dark:to-sky-300 bg-[length:200%_auto] bg-clip-text text-transparent animate-[gradient_3s_linear_infinite] ${className}`}
@@ -13,7 +14,7 @@ export function GradientText({ children, className = '' }) {
   )
 }
 
-export function Sparkles({ count = 14 }) {
+export function Sparkles({ count = 14 }: { count?: number }) {
   const sparkles = [...Array(count)].map((_, i) => ({
     id: i,
     x: Math.random() * 100,
@@ -38,7 +39,39 @@ export function Sparkles({ count = 14 }) {
   )
 }
 
-export function GlowCard({ children, className = '' }) {
+export function WaterRipple({ count = 7 }: { count?: number }) {
+  const ripples = useMemo(
+    () =>
+      [...Array(count)].map((_, i) => ({
+        id: i,
+        x: 8 + Math.random() * 84,
+        y: 8 + Math.random() * 84,
+        delay: Math.random() * 3,
+        dur: 3 + Math.random() * 2,
+        size: 22 + Math.random() * 34,
+      })),
+    [count],
+  )
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {ripples.map((r) => (
+        <div
+          key={r.id}
+          className="-translate-x-1/2 -translate-y-1/2 absolute"
+          style={{ left: `${r.x}%`, top: `${r.y}%`, width: r.size, height: r.size }}
+        >
+          <motion.span
+            className="block h-full w-full rounded-full border border-sky-200/50"
+            animate={{ scale: [0.3, 2.2], opacity: [0.6, 0] }}
+            transition={{ duration: r.dur, repeat: Infinity, delay: r.delay, ease: 'easeOut' }}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function GlowCard({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={`relative rounded-2xl border border-slate-200 bg-white/75 backdrop-blur-xl shadow-[0_10px_40px_-12px_rgba(2,90,150,0.25)] dark:border-white/10 dark:bg-white/5 dark:shadow-[0_0_40px_-10px_rgba(56,189,248,0.45)] overflow-hidden ${className}`}
@@ -49,7 +82,17 @@ export function GlowCard({ children, className = '' }) {
   )
 }
 
-export function ShimmerButton({ children, onClick, disabled, className = '' }) {
+export function ShimmerButton({
+  children,
+  onClick,
+  disabled,
+  className = '',
+}: {
+  children: ReactNode
+  onClick?: () => void
+  disabled?: boolean
+  className?: string
+}) {
   return (
     <button
       onClick={onClick}

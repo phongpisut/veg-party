@@ -1,6 +1,7 @@
 import { GlowCard } from './ui'
+import type { User } from '../types'
 
-export default function OnlineUsers({ users }) {
+export default function OnlineUsers({ users }: { users: Map<string, User> }) {
   const list = [...users.values()]
   return (
     <GlowCard className="p-4">

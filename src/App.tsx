@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import JoinModal from './components/JoinModal'
 import DuckRace from './components/DuckRace'
 import WheelOfFortune from './components/WheelOfFortune'
@@ -9,9 +9,10 @@ import Toasts from './components/Toasts'
 import ThemeToggle from './components/ThemeToggle'
 import { Sparkles } from './components/ui'
 import * as nostr from './nostr'
-import { DURATION, raceResult, makeDuck } from './gameState'
+import { DURATION, raceResult, makeDuck, DEFAULT_WHEEL } from './gameState'
+import type { Race, User, WheelItem, WheelSpin, Toast, VoteState, Me, NostrPayload } from './types'
 
-const EMPTY_RACE = {
+const EMPTY_RACE: Race = {
   status: 'idle',
   raceId: null,
   hostId: null,
@@ -23,18 +24,19 @@ const EMPTY_RACE = {
 }
 
 export default function App() {
-  const [me, setMe] = useState(() => JSON.parse(localStorage.getItem('drp_user') || 'null'))
-  const [users, setUsers] = useState(new Map())
-  const [race, setRace] = useState(EMPTY_RACE)
-  const [wheelSpins, setWheelSpins] = useState([])
-  const [toasts, setToasts] = useState([])
-  const [vote, setVote] = useState({ poll: null, votes: new Map(), closed: false, anonymous: false })
-  const [theme, setTheme] = useState(() => {
+  const [me, setMe] = useState<Me | null>(() => JSON.parse(localStorage.getItem('drp_user') || 'null') as Me | null)
+  const [users, setUsers] = useState<Map<string, User>>(new Map())
+  const [race, setRace] = useState<Race>(EMPTY_RACE)
+  const [wheelSpins, setWheelSpins] = useState<WheelSpin[]>([])
+  const [wheelItems, setWheelItems] = useState<WheelItem[]>(DEFAULT_WHEEL)
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [vote, setVote] = useState<VoteState>({ poll: null, votes: new Map(), closed: false, anonymous: false })
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('drp_theme')
-    if (saved) return saved
+    if (saved === 'dark' || saved === 'light') return saved
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
-  const seen = useRef(new Set())
+  const seen = useRef(new Set<string>())
   const backfill = useRef(true) // true until the initial relay backlog has been replayed
 
   // apply + persist theme
@@ -46,7 +48,7 @@ export default function App() {
   const raceRef = useRef(race)
   raceRef.current = race
 
-  function addUser(id, name, emoji, lastSeen) {
+  function addUser(id: string, name: string, emoji: string, lastSeen: number) {
     setUsers((prev) => {
       const next = new Map(prev)
       next.set(id, { id, name, emoji, lastSeen })
@@ -54,13 +56,13 @@ export default function App() {
     })
   }
 
-  function pushToast(user) {
-    const t = { id: Date.now() + Math.random(), user }
+  function pushToast(user: { name: string; emoji: string }) {
+    const t: Toast = { id: Date.now() + Math.random(), user }
     setToasts((prev) => [...prev.slice(-3), t])
     setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), 4000)
   }
 
-  function handleEvent(type, ev) {
+  function handleEvent(type: string, ev: NostrPayload) {
     if (seen.current.has(ev.id)) return
     seen.current.add(ev.id)
     const { body } = ev
@@ -77,6 +79,8 @@ export default function App() {
       addUser(ev.pubkey, body.name, body.emoji, lastSeen)
     } else if (type === 'wheel_spin') {
       setWheelSpins((prev) => [...prev, { id: ev.id, name: body.name, emoji: body.emoji, live }])
+    } else if (type === 'wheel_set') {
+      if (Array.isArray(body.items)) setWheelItems(body.items as WheelItem[])
     } else if (type === 'race_preview') {
       setRace({
         status: 'lobby',
@@ -126,7 +130,7 @@ export default function App() {
       // replay is done once the relay signals end-of-stored-events
       backfill.current = false
     })
-    const types = ['join', 'heartbeat', 'wheel_spin', 'race_preview', 'race_start', 'race_result', 'race_reset', 'poll_create', 'poll_vote', 'poll_close', 'poll_toggle_anonymous']
+    const types = ['join', 'heartbeat', 'wheel_spin', 'wheel_set', 'race_preview', 'race_start', 'race_result', 'race_reset', 'poll_create', 'poll_vote', 'poll_close', 'poll_toggle_anonymous']
     const fns = types.map((t) => nostr.on(t, (ev) => handleEvent(t, ev)))
     return () => {
       offConnected()
@@ -148,7 +152,7 @@ export default function App() {
     const t = setInterval(() => {
       const now = Date.now() / 1000
       setUsers((prev) => {
-        const next = new Map()
+        const next = new Map<string, User>()
         for (const [id, u] of prev) if (now - u.lastSeen < OFFLINE_AFTER) next.set(id, u)
         return next.size === prev.size ? prev : next
       })
@@ -160,7 +164,8 @@ export default function App() {
   useEffect(() => {
     if (race.status !== 'racing') return
     const { endAt, ducks } = race
-    const finish = () => setRace((s) => (s.status !== 'racing' ? s : { ...s, status: 'finished', ranking: raceResult(s.ducks).ranking }))
+    const finish = () =>
+      setRace((s) => (s.status !== 'racing' ? s : { ...s, status: 'finished', ranking: raceResult(s.ducks).ranking }))
     const delay = endAt - Date.now()
     if (delay <= 0) {
       finish()
@@ -170,8 +175,8 @@ export default function App() {
     return () => clearTimeout(t)
   }, [race.status, race.startAt, race.endAt])
 
-  function join(name, emoji) {
-    const u = { name, emoji }
+  function join(name: string, emoji: string) {
+    const u: Me = { id: nostr.myPubkey, name, emoji }
     localStorage.setItem('drp_user', JSON.stringify(u))
     setMe(u)
     nostr.publish('join', u)
@@ -180,7 +185,7 @@ export default function App() {
 
   const canStart = race.status === 'lobby' && race.hostId === nostr.myPubkey
 
-  function createRace(names) {
+  function createRace(names: string[]) {
     if (!names.length) {
       nostr.publish('race_reset', {})
       setRace(EMPTY_RACE)
@@ -188,8 +193,8 @@ export default function App() {
     }
     const raceId = `${nostr.myPubkey.slice(0, 8)}-${Date.now()}`
     const ducks = names.map((name, i) => makeDuck(`${raceId}-${i}`, name))
-    nostr.publish('race_preview', { raceId, hostId: nostr.myPubkey, hostName: me.name, ducks })
-    setRace({ status: 'lobby', raceId, hostId: nostr.myPubkey, hostName: me.name, ducks, startAt: 0, endAt: 0, ranking: null })
+    nostr.publish('race_preview', { raceId, hostId: nostr.myPubkey, hostName: me?.name ?? '', ducks })
+    setRace({ status: 'lobby', raceId, hostId: nostr.myPubkey, hostName: me?.name ?? '', ducks, startAt: 0, endAt: 0, ranking: null })
   }
 
   function startRace() {
@@ -210,18 +215,18 @@ export default function App() {
     }, DURATION * 1000 + 2500)
   }
 
-  function createPoll(title, topics) {
+  function createPoll(title: string, topics: string[]) {
     nostr.publish('poll_create', {
       pollId: `${nostr.myPubkey.slice(0, 8)}-${Date.now()}`,
       title,
       topics,
       hostId: nostr.myPubkey,
-      hostName: me?.name || 'Host',
+      hostName: me?.name ?? 'Host',
       anonymous: false,
     })
   }
 
-  function voteTopic(topic) {
+  function voteTopic(topic: string) {
     if (!vote.poll || vote.closed) return
     nostr.publish('poll_vote', { pollId: vote.poll.pollId, topic })
   }
@@ -233,6 +238,12 @@ export default function App() {
   function toggleAnonymous() {
     if (vote.poll) nostr.publish('poll_toggle_anonymous', { pollId: vote.poll.pollId, anonymous: !vote.anonymous })
   }
+
+  function publishWheelItems(items: WheelItem[]) {
+    if (Array.isArray(items)) nostr.publish('wheel_set', { items })
+  }
+
+  const meProps: Me = { id: nostr.myPubkey, name: me?.name ?? '', emoji: me?.emoji ?? '' }
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -259,11 +270,11 @@ export default function App() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            <DuckRace race={race} me={{ id: nostr.myPubkey, name: me?.name, emoji: me?.emoji }} canStart={canStart} onHostRace={createRace} onStart={startRace} />
-            <WheelOfFortune wheelSpins={wheelSpins} me={{ id: nostr.myPubkey, name: me?.name, emoji: me?.emoji }} onSpin={() => nostr.publish('wheel_spin', { name: me.name, emoji: me.emoji })} />
+            <DuckRace race={race} me={meProps} canStart={canStart} onHostRace={createRace} onStart={startRace} />
+            <WheelOfFortune wheelSpins={wheelSpins} items={wheelItems} onSetItems={publishWheelItems} me={meProps} onSpin={() => nostr.publish('wheel_spin', { name: me?.name ?? '', emoji: me?.emoji ?? '' })} />
             <Voting
               vote={vote}
-              me={{ id: nostr.myPubkey, name: me?.name, emoji: me?.emoji }}
+              me={meProps}
               users={users}
               onCreate={createPoll}
               onVote={voteTopic}

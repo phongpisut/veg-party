@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import type { Toast } from '../types'
 
-export default function Toasts({ toasts }) {
+export default function Toasts({ toasts }: { toasts: Toast[] }) {
   return (
     <div className="fixed right-4 top-20 z-40 flex flex-col gap-2">
       <AnimatePresence>

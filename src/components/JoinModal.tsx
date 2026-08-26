@@ -1,14 +1,14 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { GlowCard, ShimmerButton, GradientText } from './ui'
 
 const EMOJIS = ['🦆', '🐸', '🐢', '🦊', '🐻', '🐧', '🦋', '🐳', '🦄', '🐯', '🐙', '🐝', '🐬', '🦜', '🐹', '🐺']
 
-export default function JoinModal({ onSubmit }) {
+export default function JoinModal({ onSubmit }: { onSubmit: (name: string, emoji: string) => void }) {
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('🦆')
 
-  const submit = (e) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
     onSubmit(name.trim(), emoji)

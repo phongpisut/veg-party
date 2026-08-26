@@ -43,10 +43,10 @@ export default function App() {
   const raceRef = useRef(race)
   raceRef.current = race
 
-  function addUser(id, name, emoji) {
+  function addUser(id, name, emoji, lastSeen) {
     setUsers((prev) => {
       const next = new Map(prev)
-      next.set(id, { id, name, emoji, lastSeen: Date.now() / 1000 })
+      next.set(id, { id, name, emoji, lastSeen })
       return next
     })
   }
@@ -64,10 +64,10 @@ export default function App() {
     const live = ev.created_at > Date.now() / 1000 - 6
 
     if (type === 'join') {
-      addUser(ev.pubkey, body.name, body.emoji)
+      addUser(ev.pubkey, body.name, body.emoji, ev.created_at)
       if (live && ev.pubkey !== nostr.myPubkey) pushToast({ name: body.name, emoji: body.emoji })
     } else if (type === 'heartbeat') {
-      addUser(ev.pubkey, body.name, body.emoji)
+      addUser(ev.pubkey, body.name, body.emoji, ev.created_at)
     } else if (type === 'wheel_spin') {
       setWheelSpins((prev) => [...prev, { id: ev.id, name: body.name, emoji: body.emoji, live }])
     } else if (type === 'race_preview') {

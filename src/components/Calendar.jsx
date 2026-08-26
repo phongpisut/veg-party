@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GlowCard, GradientText, ShimmerButton } from './ui'
+import { publish, on as onNostr } from '../nostr'
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const MONTHS = [
@@ -16,34 +17,58 @@ function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
+const loadNotes = () => JSON.parse(localStorage.getItem('drp_notes') || '{}')
+
 export default function Calendar() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const [view, setView] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
   const [selected, setSelected] = useState(today)
-  const [notes, setNotes] = useState(() => JSON.parse(localStorage.getItem('drp_notes') || '{}'))
+  const [notes, setNotes] = useState(loadNotes)
   const [draft, setDraft] = useState('')
   const [saved, setSaved] = useState(false)
 
-  const saveNotes = (next) => {
-    localStorage.setItem('drp_notes', JSON.stringify(next))
-    setNotes(next)
-  }
+  // persist to localStorage whenever notes change
+  useEffect(() => {
+    localStorage.setItem('drp_notes', JSON.stringify(notes))
+  }, [notes])
+
+  // sync notes over Nostr: last-write-wins by event timestamp
+  useEffect(() => {
+    const off = onNostr('note_set', (ev) => {
+      const { date, text } = ev.body
+      const ts = ev.created_at
+      setNotes((prev) => {
+        const cur = prev[date]
+        if (cur && ts < cur.ts) return prev // incoming is older, keep mine
+        const next = { ...prev }
+        if (text) next[date] = { text, ts }
+        else delete next[date]
+        return next
+      })
+    })
+    return off
+  }, [])
 
   const selKey = key(selected)
-  const selText = notes[selKey] || ''
+  const selText = notes[selKey]?.text || ''
 
   function openDay(d) {
     setSelected(d)
-    setDraft(notes[key(d)] || '')
+    setDraft(notes[key(d)]?.text || '')
     setSaved(false)
   }
 
   function saveNote() {
-    const next = { ...notes }
-    if (draft.trim()) next[selKey] = draft.trim()
-    else delete next[selKey]
-    saveNotes(next)
+    const ts = Math.floor(Date.now() / 1000)
+    const text = draft.trim()
+    setNotes((prev) => {
+      const next = { ...prev }
+      if (text) next[selKey] = { text, ts }
+      else delete next[selKey]
+      return next
+    })
+    publish('note_set', { date: selKey, text })
     setSaved(true)
   }
 
@@ -65,29 +90,19 @@ export default function Calendar() {
         <h2 className="text-xl font-bold">
           <GradientText>📅 Party Calendar</GradientText>
         </h2>
+        <span className="text-[11px] text-slate-500 dark:text-slate-400">synced via Nostr · saved here</span>
       </div>
 
-      {/* header + nav */}
       <div className="mt-4 flex items-center justify-between">
-        <button onClick={() => shim(-1)} className="rounded-lg border border-slate-300 bg-white/70 px-3 py-1 text-sm hover:bg-white dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15">
-          ‹
-        </button>
-        <div className="text-lg font-bold capitalize">
-          {MONTHS[month]} {year}
-        </div>
-        <button onClick={() => shim(1)} className="rounded-lg border border-slate-300 bg-white/70 px-3 py-1 text-sm hover:bg-white dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15">
-          ›
-        </button>
+        <button onClick={() => shim(-1)} className="rounded-lg border border-slate-300 bg-white/70 px-3 py-1 text-sm hover:bg-white dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15">‹</button>
+        <div className="text-lg font-bold capitalize">{MONTHS[month]} {year}</div>
+        <button onClick={() => shim(1)} className="rounded-lg border border-slate-300 bg-white/70 px-3 py-1 text-sm hover:bg-white dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15">›</button>
       </div>
 
-      {/* weekday header */}
       <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-        {WEEKDAYS.map((w) => (
-          <div key={w} className="py-1">{w}</div>
-        ))}
+        {WEEKDAYS.map((w) => <div key={w} className="py-1">{w}</div>)}
       </div>
 
-      {/* day grid */}
       <div className="mt-1 grid grid-cols-7 gap-1">
         <AnimatePresence mode="popLayout" initial={false}>
           {cells.map((d, i) => {
@@ -120,7 +135,6 @@ export default function Calendar() {
         </AnimatePresence>
       </div>
 
-      {/* note editor */}
       <div className="mt-5 rounded-xl border border-slate-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
         <div className="text-sm font-semibold">
           Note for{' '}
@@ -132,12 +146,12 @@ export default function Calendar() {
           value={draft}
           onChange={(e) => { setDraft(e.target.value); setSaved(false) }}
           rows={3}
-          placeholder="Write a note for this day… (auto-saved to this browser)"
+          placeholder="Write a note for this day… (shared with everyone on the relay)"
           className="mt-2 w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
         />
         <div className="mt-2 flex items-center justify-between">
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            {saved ? '✓ Saved to localStorage' : selText ? draft !== selText ? 'Unsaved changes' : 'Saved to localStorage' : ''}
+            {saved ? '✓ Saved + synced' : selText && draft !== selText ? 'Unsaved changes' : selText ? 'Saved + synced' : ''}
           </span>
           <div className="flex gap-2">
             {selText && (
@@ -145,9 +159,7 @@ export default function Calendar() {
                 Delete
               </button>
             )}
-            <ShimmerButton onClick={saveNote} className="!px-4 !py-1.5 !text-xs">
-              Save Note
-            </ShimmerButton>
+            <ShimmerButton onClick={saveNote} className="!px-4 !py-1.5 !text-xs">Save Note</ShimmerButton>
           </div>
         </div>
       </div>

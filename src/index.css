@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: 'Sora', -apple-system, 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at 20% 10%, #1b3a5c 0%, #0b1e33 45%, #071122 100%);
+  color: #e7f1ff;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: 'Sora', sans-serif;
+  letter-spacing: -0.02em;
+}

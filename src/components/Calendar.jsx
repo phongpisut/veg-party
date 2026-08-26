@@ -62,12 +62,13 @@ export default function Calendar() {
   function saveNote() {
     const ts = Math.floor(Date.now() / 1000)
     const text = draft.trim()
-    setNotes((prev) => {
-      const next = { ...prev }
-      if (text) next[selKey] = { text, ts }
-      else delete next[selKey]
-      return next
-    })
+    const next = { ...notes }
+    if (text) next[selKey] = { text, ts }
+    else delete next[selKey]
+    // back up to localStorage FIRST, then broadcast so a failed relay never
+    // loses the note
+    localStorage.setItem('drp_notes', JSON.stringify(next))
+    setNotes(next)
     publish('note_set', { date: selKey, text })
     setSaved(true)
   }

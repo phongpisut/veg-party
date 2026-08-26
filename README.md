@@ -41,14 +41,19 @@ Nostr is just an append-only pub/sub, so raw event streams don't give you
 
 ### Relay set
 
-Events publish to and are subscribed from 3 free public relays, so any two
-clients sharing at least one relay stay in sync:
+Events publish to and are subscribed from several free public relays, so any
+two clients sharing at least one relay stay in sync:
 
 ```
 wss://relay.pocketnostr.com   (primary)
 wss://relay.damus.io
 wss://nostr.mom
 ```
+
+You can add your own **backup relays** from the UI (saved to localStorage). If
+one relay goes down, reconnection is automatic and the others keep sync alive.
+All outgoing saves (calendar notes, user, relay list, theme) are written to
+localStorage first, then published, so nothing is lost when a relay fails.
 
 ## 🚀 Run locally
 

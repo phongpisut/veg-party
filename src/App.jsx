@@ -4,6 +4,7 @@ import DuckRace from './components/DuckRace'
 import WheelOfFortune from './components/WheelOfFortune'
 import Calendar from './components/Calendar'
 import OnlineUsers from './components/OnlineUsers'
+import RelayManager from './components/RelayManager'
 import Toasts from './components/Toasts'
 import ThemeToggle from './components/ThemeToggle'
 import { Sparkles } from './components/ui'
@@ -33,6 +34,7 @@ export default function App() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
   const seen = useRef(new Set())
+  const backfill = useRef(true) // true until the initial relay backlog has been replayed
 
   // apply + persist theme
   useEffect(() => {
@@ -64,10 +66,14 @@ export default function App() {
     const live = ev.created_at > Date.now() / 1000 - 6
 
     if (type === 'join') {
-      addUser(ev.pubkey, body.name, body.emoji, ev.created_at)
+      // during backfill use the event's own timestamp (stale ones get pruned),
+      // after connect use the local receive time so clock skew can't drop a real user
+      const lastSeen = backfill.current ? ev.created_at : Math.floor(Date.now() / 1000)
+      addUser(ev.pubkey, body.name, body.emoji, lastSeen)
       if (live && ev.pubkey !== nostr.myPubkey) pushToast({ name: body.name, emoji: body.emoji })
     } else if (type === 'heartbeat') {
-      addUser(ev.pubkey, body.name, body.emoji, ev.created_at)
+      const lastSeen = backfill.current ? ev.created_at : Math.floor(Date.now() / 1000)
+      addUser(ev.pubkey, body.name, body.emoji, lastSeen)
     } else if (type === 'wheel_spin') {
       setWheelSpins((prev) => [...prev, { id: ev.id, name: body.name, emoji: body.emoji, live }])
     } else if (type === 'race_preview') {
@@ -102,18 +108,39 @@ export default function App() {
   // connect + subscribe
   useEffect(() => {
     nostr.connect()
+    const offConnected = nostr.on('connected', () => {
+      // replay is done once the relay signals end-of-stored-events
+      backfill.current = false
+    })
     const types = ['join', 'heartbeat', 'wheel_spin', 'race_preview', 'race_start', 'race_result', 'race_reset']
     const fns = types.map((t) => nostr.on(t, (ev) => handleEvent(t, ev)))
-    return () => fns.forEach((off) => off())
+    return () => {
+      offConnected()
+      fns.forEach((off) => off())
+    }
   }, [])
 
   // heartbeat while joined
   useEffect(() => {
     if (!me) return
     nostr.publish('heartbeat', { name: me.name, emoji: me.emoji })
-    const t = setInterval(() => nostr.publish('heartbeat', { name: me.name, emoji: me.emoji }), 15000)
+    const t = setInterval(() => nostr.publish('heartbeat', { name: me.name, emoji: me.emoji }), 10000)
     return () => clearInterval(t)
   }, [me])
+
+  // drop users who have stopped heartbeating (lastSeen older than OFFLINE_AFTER)
+  useEffect(() => {
+    const OFFLINE_AFTER = 25
+    const t = setInterval(() => {
+      const now = Date.now() / 1000
+      setUsers((prev) => {
+        const next = new Map()
+        for (const [id, u] of prev) if (now - u.lastSeen < OFFLINE_AFTER) next.set(id, u)
+        return next.size === prev.size ? prev : next
+      })
+    }, 2000)
+    return () => clearInterval(t)
+  }, [])
 
   // flip to finished when the 10s window elapses (all clients do this locally)
   useEffect(() => {
@@ -200,6 +227,9 @@ export default function App() {
           </div>
           <div className="h-max">
             <OnlineUsers users={users} />
+            <div className="mt-6">
+              <RelayManager />
+            </div>
           </div>
         </div>
 

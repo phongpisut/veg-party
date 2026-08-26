@@ -7,6 +7,7 @@ export default function Voting({ vote, me, users, onCreate, onVote, onClose, onT
   const isHost = poll && poll.hostId === me.id
   const joined = !!me.name
 
+  const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState('')
   const [topics, setTopics] = useState('')
 
@@ -19,10 +20,40 @@ export default function Voting({ vote, me, users, onCreate, onVote, onClose, onT
 
   function create() {
     const t = topics.split(',').map((x) => x.trim()).filter(Boolean)
-    if (title.trim() && t.length >= 2) onCreate(title.trim(), t)
+    if (title.trim() && t.length >= 2) {
+      onCreate(title.trim(), t)
+      setTitle('')
+      setTopics('')
+      setCreating(false)
+    }
   }
 
   const maxVotes = poll ? Math.max(0, ...Object.values(groups).map((g) => g.length)) : 0
+  const showCreate = !poll || creating
+
+  function CreateForm({ withCancel }) {
+    return (
+      <div className="mt-4 space-y-3">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Create a topic; everyone picks one and can change their vote anytime.
+        </p>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Vote title, e.g. Next party game"
+          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500" />
+        <input value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="Topics, comma separated, e.g. Mario Kart, Cards, Trivia"
+          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500" />
+        <div className="flex gap-2">
+          <ShimmerButton onClick={create} disabled={!title.trim() || topics.split(',').map((x) => x.trim()).filter(Boolean).length < 2}>
+            Create Vote →
+          </ShimmerButton>
+          {withCancel && (
+            <button onClick={() => setCreating(false)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:border-white/15 dark:text-slate-300 dark:hover:bg-white/10">
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <GlowCard className="p-6">
@@ -37,22 +68,9 @@ export default function Voting({ vote, me, users, onCreate, onVote, onClose, onT
         )}
       </div>
 
-      {!poll && (
-        <div className="mt-4 space-y-3">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            Create a topic; everyone picks one and can change their vote anytime.
-          </p>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Vote title, e.g. Next party game"
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500" />
-          <input value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="Topics, comma separated, e.g. Mario Kart, Cards, Trivia"
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500" />
-          <ShimmerButton onClick={create} disabled={!title.trim() || topics.split(',').map((x) => x.trim()).filter(Boolean).length < 2}>
-            Create Vote →
-          </ShimmerButton>
-        </div>
-      )}
-
-      {poll && (
+      {showCreate ? (
+        <CreateForm withCancel={!!poll} />
+      ) : (
         <div className="mt-4">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-bold">{poll.title}</h3>
@@ -71,7 +89,7 @@ export default function Voting({ vote, me, users, onCreate, onVote, onClose, onT
                 const count = voters.length
                 const pct = total ? Math.round((count / total) * 100) : 0
                 const isMine = myVote === topic
-                const isWinner = closed && poll && count === maxVotes && maxVotes > 0
+                const isWinner = closed && count === maxVotes && maxVotes > 0
                 return (
                   <motion.div
                     key={topic}
@@ -91,7 +109,6 @@ export default function Voting({ vote, me, users, onCreate, onVote, onClose, onT
                       <span className="ml-auto text-sm font-bold tabular-nums">{count} · {pct}%</span>
                     </div>
 
-                    {/* who voted for this topic (hidden when anonymous) */}
                     {!anonymous && voters.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {voters.map((pubkey) => (
@@ -114,14 +131,14 @@ export default function Voting({ vote, me, users, onCreate, onVote, onClose, onT
                       </div>
                     ) : (
                       <button
-                        disabled={!joined || !isMine}
+                        disabled={!joined}
                         onClick={() => onVote(topic)}
                         className={`mt-2 w-full rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
                           isMine
                             ? 'bg-sky-500 text-white'
                             : joined
-                              ? 'border border-sky-300/60 text-sky-700 hover:bg-sky-400/10 disabled:opacity-100 dark:text-sky-300'
-                              : 'border border-slate-300 text-slate-400'
+                              ? 'border border-sky-300/60 text-sky-700 hover:bg-sky-400/10 dark:text-sky-300'
+                              : 'border border-slate-300 text-slate-400 dark:border-white/15'
                         }`}
                       >
                         {isMine ? `✓ Voted for ${topic}` : 'Vote'}
@@ -133,7 +150,15 @@ export default function Voting({ vote, me, users, onCreate, onVote, onClose, onT
             </AnimatePresence>
           </div>
 
-          {/* host controls */}
+          {closed && (
+            <button
+              onClick={() => setCreating(true)}
+              className="mt-4 w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110"
+            >
+              + Start a New Vote
+            </button>
+          )}
+
           {isHost && !closed && (
             <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white/60 p-3 dark:border-white/10 dark:bg-white/5">
               <label className="flex cursor-pointer items-center gap-2 text-sm">

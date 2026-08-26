@@ -35,7 +35,7 @@ export function removeRelay(url) {
   }
 }
 
-// ---- event bus (shared pub/sub used by App, Calendar, RelayManager) ----
+// ---- event bus (shared pub/sub used by App, Calendar, Voting, etc.) ----
 const EVENTS = new EventTarget()
 export const on = (type, fn) => {
   const handler = (e) => fn(e.detail)

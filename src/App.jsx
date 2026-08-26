@@ -4,7 +4,7 @@ import DuckRace from './components/DuckRace'
 import WheelOfFortune from './components/WheelOfFortune'
 import Calendar from './components/Calendar'
 import OnlineUsers from './components/OnlineUsers'
-import RelayManager from './components/RelayManager'
+import Voting from './components/Voting'
 import Toasts from './components/Toasts'
 import ThemeToggle from './components/ThemeToggle'
 import { Sparkles } from './components/ui'
@@ -28,6 +28,7 @@ export default function App() {
   const [race, setRace] = useState(EMPTY_RACE)
   const [wheelSpins, setWheelSpins] = useState([])
   const [toasts, setToasts] = useState([])
+  const [vote, setVote] = useState({ poll: null, votes: new Map(), closed: false, anonymous: false })
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('drp_theme')
     if (saved) return saved
@@ -102,6 +103,19 @@ export default function App() {
       )
     } else if (type === 'race_reset') {
       setRace(EMPTY_RACE)
+    } else if (type === 'poll_create') {
+      setVote({ poll: body, votes: new Map(), closed: false, anonymous: !!body.anonymous })
+    } else if (type === 'poll_vote') {
+      setVote((p) => {
+        if (!p.poll || p.poll.pollId !== body.pollId) return p
+        const votes = new Map(p.votes)
+        votes.set(ev.pubkey, body.topic)
+        return { ...p, votes }
+      })
+    } else if (type === 'poll_close') {
+      setVote((p) => (p.poll && p.poll.pollId === body.pollId ? { ...p, closed: true } : p))
+    } else if (type === 'poll_toggle_anonymous') {
+      setVote((p) => (p.poll && p.poll.pollId === body.pollId ? { ...p, anonymous: body.anonymous } : p))
     }
   }
 
@@ -112,7 +126,7 @@ export default function App() {
       // replay is done once the relay signals end-of-stored-events
       backfill.current = false
     })
-    const types = ['join', 'heartbeat', 'wheel_spin', 'race_preview', 'race_start', 'race_result', 'race_reset']
+    const types = ['join', 'heartbeat', 'wheel_spin', 'race_preview', 'race_start', 'race_result', 'race_reset', 'poll_create', 'poll_vote', 'poll_close', 'poll_toggle_anonymous']
     const fns = types.map((t) => nostr.on(t, (ev) => handleEvent(t, ev)))
     return () => {
       offConnected()
@@ -196,6 +210,30 @@ export default function App() {
     }, DURATION * 1000 + 2500)
   }
 
+  function createPoll(title, topics) {
+    nostr.publish('poll_create', {
+      pollId: `${nostr.myPubkey.slice(0, 8)}-${Date.now()}`,
+      title,
+      topics,
+      hostId: nostr.myPubkey,
+      hostName: me?.name || 'Host',
+      anonymous: false,
+    })
+  }
+
+  function voteTopic(topic) {
+    if (!vote.poll || vote.closed) return
+    nostr.publish('poll_vote', { pollId: vote.poll.pollId, topic })
+  }
+
+  function closePoll() {
+    if (vote.poll) nostr.publish('poll_close', { pollId: vote.poll.pollId })
+  }
+
+  function toggleAnonymous() {
+    if (vote.poll) nostr.publish('poll_toggle_anonymous', { pollId: vote.poll.pollId, anonymous: !vote.anonymous })
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <Sparkles />
@@ -223,13 +261,19 @@ export default function App() {
           <div className="lg:col-span-2 space-y-6">
             <DuckRace race={race} me={{ id: nostr.myPubkey, name: me?.name, emoji: me?.emoji }} canStart={canStart} onHostRace={createRace} onStart={startRace} />
             <WheelOfFortune wheelSpins={wheelSpins} me={{ id: nostr.myPubkey, name: me?.name, emoji: me?.emoji }} onSpin={() => nostr.publish('wheel_spin', { name: me.name, emoji: me.emoji })} />
+            <Voting
+              vote={vote}
+              me={{ id: nostr.myPubkey, name: me?.name, emoji: me?.emoji }}
+              users={users}
+              onCreate={createPoll}
+              onVote={voteTopic}
+              onClose={closePoll}
+              onToggleAnonymous={toggleAnonymous}
+            />
             <Calendar />
           </div>
           <div className="h-max">
             <OnlineUsers users={users} />
-            <div className="mt-6">
-              <RelayManager />
-            </div>
           </div>
         </div>
 

@@ -26,7 +26,7 @@ export default function JoinModal({ onSubmit }: { onSubmit: (name: string, emoji
           <div className="text-center">
             <div className="text-5xl mb-2">🦆</div>
             <h2 className="text-2xl font-bold">
-              <GradientText>Duck River Party</GradientText>
+              <GradientText>Party Tools</GradientText>
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Syncs live over Nostr so everyone races the same race.

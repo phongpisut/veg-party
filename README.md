@@ -1,4 +1,4 @@
-# 🦆 Duck River Party
+# 🦆 Party Tools
 
 A real-time party app — a shared **10-second duck race** and a **wheel of
 fortune** — where every browser window is synced live over the **Nostr**

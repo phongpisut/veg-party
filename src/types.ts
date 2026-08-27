@@ -1,4 +1,4 @@
-// Shared domain types for the Duck River Party app.
+// Shared domain types for the Party Tools app.
 
 export interface Duck {
   id: string

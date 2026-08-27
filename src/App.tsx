@@ -256,10 +256,6 @@ export default function App() {
           <h1 className="text-4xl font-extrabold sm:text-5xl">
             🦆 <span className="bg-gradient-to-r from-amber-500 via-pink-500 to-sky-500 dark:from-amber-200 dark:via-pink-300 dark:to-sky-300 bg-clip-text text-transparent">Duck River Party</span>
           </h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">
-            A shared 10-second duck race + wheel of fortune + calendar, synced live over{' '}
-            <b className="text-sky-600 dark:text-sky-300">Nostr</b> ({nostr.RELAY.replace('wss://', '')})
-          </p>
           {me && (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-4 py-1.5 text-sm dark:border-white/10 dark:bg-white/5">
               <span className="text-xl">{me.emoji}</span>

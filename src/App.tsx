@@ -254,7 +254,7 @@ export default function App() {
             <ThemeToggle theme={theme} onToggle={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))} />
           </div>
           <h1 className="text-4xl font-extrabold sm:text-5xl">
-            🧺 <span className="bg-gradient-to-r from-amber-500 via-pink-500 to-sky-500 dark:from-amber-200 dark:via-pink-300 dark:to-sky-300 bg-clip-text text-transparent">Party Tools</span>
+            🥗 <span className="bg-gradient-to-r from-amber-500 via-pink-500 to-sky-500 dark:from-amber-200 dark:via-pink-300 dark:to-sky-300 bg-clip-text text-transparent">Party Tools</span>
           </h1>
           {me && (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-4 py-1.5 text-sm dark:border-white/10 dark:bg-white/5">

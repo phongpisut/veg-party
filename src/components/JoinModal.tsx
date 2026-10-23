@@ -20,7 +20,7 @@ export default function JoinModal({ onSubmit }: { onSubmit: (name: string, emoji
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/55" />
       <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}>
         <GlowCard className="w-full max-w-md p-8">
           <div className="text-center">
@@ -41,7 +41,7 @@ export default function JoinModal({ onSubmit }: { onSubmit: (name: string, emoji
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Sunny"
                 maxLength={20}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-[color:var(--ink)] focus:outline-none dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
               />
             </div>
 
@@ -55,7 +55,7 @@ export default function JoinModal({ onSubmit }: { onSubmit: (name: string, emoji
                     onClick={() => setEmoji(em)}
                     className={`rounded-lg py-1.5 text-2xl transition ${
                       emoji === em
-                        ? 'bg-sky-500/40 ring-2 ring-sky-400 scale-110'
+                        ? 'bg-[#fde68a] ring-2 ring-[color:var(--ink)] scale-110'
                         : 'bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10'
                     }`}
                   >

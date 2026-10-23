@@ -85,3 +85,33 @@ export interface Note {
 }
 
 export type NoteMap = Record<string, Note>
+
+export interface Seat {
+  id: string
+  name: string
+  emoji: string
+}
+
+export type GuessPhase = 'lobby' | 'writing' | 'playing' | 'done'
+
+export interface GuessGame {
+  gameId: string
+  hostId: string
+  hostName: string
+  rounds: number
+  phase: GuessPhase
+  seats: Seat[]
+  names: Record<string, string> // seat id -> the secret name stuck on their forehead
+  current: number // seat index whose turn it is
+  round: number
+  turn: number // turn counter; end_turn/solved must quote it so duplicates are ignored
+  solved: string[] // seat ids in the order they guessed right
+  solvedRound: Record<string, number>
+  lastTs: number
+}
+
+export interface GuessEvent {
+  id: string
+  pubkey: string
+  body: any
+}

@@ -9,9 +9,37 @@ export const RELAYS = [
 ]
 export const RELAY = RELAYS[0]
 export const GAME_KIND = 31337
-// Channel tag. Configurable at build time via the VITE_GAME_TAG env var so each
-// deployed environment can have its own isolated room (defaults to the live room).
-export const GAME_TAG: string = import.meta.env.VITE_GAME_TAG || 'duck-river-party-v2'
+// 31337 is parameterized-replaceable: relays keep only each user's LATEST event
+// per room. Game moves must all survive for late joiners to replay them, so
+// they go on a regular (stored) kind instead.
+export const MOVE_KIND = 7331
+// Channel tag = build-time base (VITE_GAME_TAG, one per deployed environment)
+// + the room code, so only people sharing the same invite code sync together.
+const BASE_TAG: string = import.meta.env.VITE_GAME_TAG || 'duck-river-party-v2'
+
+const ROOM_KEY = 'drp_room'
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // no 0/O/1/I/L lookalikes
+export const cleanRoom = (raw: string) => raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
+const newRoom = () => Array.from({ length: 5 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('')
+
+// URL ?room= wins (invite links), then the last room this browser was in, else a fresh one
+export const ROOM: string =
+  cleanRoom(new URLSearchParams(location.search).get('room') || '') ||
+  cleanRoom(localStorage.getItem(ROOM_KEY) || '') ||
+  newRoom()
+localStorage.setItem(ROOM_KEY, ROOM)
+{
+  const url = new URL(location.href)
+  url.searchParams.set('room', ROOM)
+  history.replaceState(null, '', url)
+}
+export const GAME_TAG = `${BASE_TAG}:${ROOM}`
+export const inviteLink = () => `${location.origin}${location.pathname}?room=${ROOM}`
+export function goToRoom(code: string): void {
+  const room = cleanRoom(code)
+  if (room && room !== ROOM) location.search = `?room=${room}` // reload: all shared state is per room
+}
+export const createRoom = () => goToRoom(newRoom())
 
 const EXTRA_KEY = 'drp_extra_relays'
 let extraRelays: string[] = []
@@ -87,7 +115,7 @@ export function connect(): void {
   sub?.close()
   sub = pool.subscribeMany(
     relays,
-    { kinds: [GAME_KIND], '#d': [GAME_TAG] },
+    { kinds: [GAME_KIND, MOVE_KIND], '#d': [GAME_TAG] },
     {
       onevent(ev: any) {
         let body
@@ -129,11 +157,11 @@ export function refreshRelays(): void {
   connect()
 }
 
-export async function publish(type: string, body: Record<string, any>): Promise<any> {
+export async function publish(type: string, body: Record<string, any>, kind = GAME_KIND): Promise<any> {
   const content = JSON.stringify({ type, ...body })
   const event = finalizeEvent(
     {
-      kind: GAME_KIND,
+      kind,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
         ['d', GAME_TAG],

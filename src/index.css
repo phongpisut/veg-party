@@ -4,25 +4,70 @@
 
 :root {
   color-scheme: light;
+  --paper: #f4efe4;
+  --card: #fffdf7;
+  --ink: #23201c;
+  --dots: rgba(35, 32, 28, 0.13);
 }
 html.dark {
   color-scheme: dark;
+  --paper: #1c1b19;
+  --card: #262420;
+  --ink: #ece5d6;
+  --dots: rgba(236, 229, 214, 0.08);
 }
 
 body {
   margin: 0;
-  font-family: 'Sora', -apple-system, 'Segoe UI', sans-serif;
-  background: radial-gradient(circle at 20% 10%, #e3f1ff 0%, #cfe6fb 45%, #b9d8f1 100%);
-  color: #0f172a;
+  font-family: 'Patrick Hand', 'Comic Sans MS', system-ui, sans-serif;
+  font-size: 17px;
+  /* static dot-grid notebook paper: painted once, never animated */
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dots) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  color: var(--ink);
   min-height: 100vh;
-  transition: background 0.3s, color 0.3s;
-}
-html.dark body {
-  background: radial-gradient(circle at 20% 10%, #1b3a5c 0%, #0b1e33 45%, #071122 100%);
-  color: #e7f1ff;
 }
 
 h1, h2, h3 {
-  font-family: 'Sora', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: 'Patrick Hand', 'Comic Sans MS', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* hand-drawn card: wobbly corners, ink outline, hard offset shadow */
+.sketch {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 18px 6px 16px 8px / 8px 16px 6px 18px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.sketch-btn {
+  border: 2.5px solid var(--ink);
+  border-radius: 14px 5px 12px 6px / 6px 12px 5px 14px;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.sketch-btn:not(:disabled):hover {
+  transform: translate(-1px, -1px) rotate(-0.6deg);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.sketch-btn:not(:disabled):active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+/* bold marker fills for buttons */
+.btn-red { background: #f0503c; color: #fff; }
+.btn-blue { background: #2f7de1; color: #fff; }
+.btn-green { background: #1fa65a; color: #fff; }
+.btn-purple { background: #8b5cf6; color: #fff; }
+.btn-yellow { background: #ffc83d; color: #23201c; }
+.btn-ink { background: var(--ink); color: var(--paper); }
+
+/* highlighter stroke behind headings */
+.marker {
+  background: linear-gradient(transparent 58%, #fde68a 58%, #fde68a 92%, transparent 92%);
+  padding: 0 0.15em;
+}
+html.dark .marker {
+  background: linear-gradient(transparent 58%, rgba(234, 179, 8, 0.45) 58%, rgba(234, 179, 8, 0.45) 92%, transparent 92%);
 }

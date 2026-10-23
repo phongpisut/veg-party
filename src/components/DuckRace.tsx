@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { GlowCard, ShimmerButton, GradientText, WaterRipple } from './ui'
+import { GlowCard, ShimmerButton, GradientText } from './ui'
 import { DURATION, speedNow, buildRaceTables, positionAt, duckColor } from '../gameState'
 import type { Race, Me, Duck, RaceDuck } from '../types'
 
@@ -56,12 +56,10 @@ export default function DuckRace({
     <GlowCard className="p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">
-          <GradientText>
-            <span className="inline-block" style={{ transform: 'scaleX(-1)' }}>
-              🦆
-            </span>{' '}
-            Duck Race
-          </GradientText>
+          <span className="inline-block" style={{ transform: 'scaleX(-1)' }}>
+            🦆
+          </span>{' '}
+          <GradientText>Duck Race</GradientText>
         </h2>
         <StatusBadge race={race} remaining={remaining} />
       </div>
@@ -157,9 +155,8 @@ function Track({
 }) {
   return (
     <div className="relative mt-5">
-      <div className="relative overflow-hidden rounded-2xl border border-sky-300/20 bg-gradient-to-b from-[#0c2c4e] to-[#0a2038] px-4 py-3">
-        <div className="pointer-events-none absolute inset-0 opacity-30 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22><path d=%22M0 20 Q15 10 30 20 T60 20%22 stroke=%22%2338bdf8%22 fill=%22none%22 stroke-width=%221.5%22/></svg>')] animate-[bgpan_1.5s_linear_infinite]" />
-        <WaterRipple />
+      <div className="relative overflow-hidden rounded-2xl border-2 border-[color:var(--ink)] bg-[#2f6f9f] px-4 py-3">
+        <div className="pointer-events-none absolute inset-0 opacity-30 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22><path d=%22M0 20 Q15 10 30 20 T60 20%22 stroke=%22%2338bdf8%22 fill=%22none%22 stroke-width=%221.5%22/></svg>')]" />
         <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-[repeating-linear-gradient(45deg,#ffffff_0_10px,#0b0b0b_10px_20px)]" />
         <div className="absolute right-2 top-1 text-[10px] font-bold text-amber-300">🏁</div>
 

@@ -11,7 +11,7 @@ export default function Toasts({ toasts }: { toasts: Toast[] }) {
             initial={{ x: 80, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 80, opacity: 0 }}
-            className="flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-sm shadow-lg backdrop-blur"
+            className="sketch flex items-center gap-2 px-3 py-2"
           >
             <span className="text-xl">{user.emoji}</span>
             <span>

@@ -142,7 +142,7 @@ export default function Calendar() {
                 onClick={() => openDay(d)}
                 className={`relative aspect-square rounded-xl text-sm font-medium transition ${
                   isSel
-                    ? 'bg-gradient-to-br from-sky-500 to-cyan-400 text-white shadow-[0_0_14px_-2px_rgba(34,211,238,0.7)]'
+                    ? 'btn-red ring-2 ring-[color:var(--ink)]'
                     : 'border border-slate-200 bg-white/60 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'
                 }`}
               >

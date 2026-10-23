@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import JoinModal from './components/JoinModal'
 import DuckRace from './components/DuckRace'
 import WheelOfFortune from './components/WheelOfFortune'
@@ -7,10 +8,13 @@ import OnlineUsers from './components/OnlineUsers'
 import Voting from './components/Voting'
 import Toasts from './components/Toasts'
 import ThemeToggle from './components/ThemeToggle'
-import { Sparkles } from './components/ui'
+import RoomCard from './components/RoomCard'
+import GuessWho from './components/GuessWho'
+import { GradientText } from './components/ui'
 import * as nostr from './nostr'
 import { DURATION, raceResult, makeDuck, DEFAULT_WHEEL } from './gameState'
-import type { Race, User, WheelItem, WheelSpin, Toast, VoteState, Me, NostrPayload } from './types'
+import { foldGuess } from './guessGame'
+import type { Race, User, WheelItem, WheelSpin, Toast, VoteState, Me, NostrPayload, GuessEvent } from './types'
 
 const EMPTY_RACE: Race = {
   status: 'idle',
@@ -30,6 +34,8 @@ export default function App() {
   const [wheelSpins, setWheelSpins] = useState<WheelSpin[]>([])
   const [wheelItems, setWheelItems] = useState<WheelItem[]>(DEFAULT_WHEEL)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [guessEvents, setGuessEvents] = useState<GuessEvent[]>([])
+  const guess = useMemo(() => foldGuess(guessEvents), [guessEvents])
   const [vote, setVote] = useState<VoteState>({ poll: null, votes: new Map(), closed: false, anonymous: false })
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('drp_theme')
@@ -107,6 +113,8 @@ export default function App() {
       )
     } else if (type === 'race_reset') {
       setRace(EMPTY_RACE)
+    } else if (type === 'guess') {
+      setGuessEvents((prev) => [...prev, { id: ev.id, pubkey: ev.pubkey, body }])
     } else if (type === 'poll_create') {
       setVote({ poll: body, votes: new Map(), closed: false, anonymous: !!body.anonymous })
     } else if (type === 'poll_vote') {
@@ -130,7 +138,7 @@ export default function App() {
       // replay is done once the relay signals end-of-stored-events
       backfill.current = false
     })
-    const types = ['join', 'heartbeat', 'wheel_spin', 'wheel_set', 'race_preview', 'race_start', 'race_result', 'race_reset', 'poll_create', 'poll_vote', 'poll_close', 'poll_toggle_anonymous']
+    const types = ['join', 'heartbeat', 'wheel_spin', 'wheel_set', 'race_preview', 'race_start', 'race_result', 'race_reset', 'poll_create', 'poll_vote', 'poll_close', 'poll_toggle_anonymous', 'guess']
     const fns = types.map((t) => nostr.on(t, (ev) => handleEvent(t, ev)))
     return () => {
       offConnected()
@@ -239,54 +247,99 @@ export default function App() {
     if (vote.poll) nostr.publish('poll_toggle_anonymous', { pollId: vote.poll.pollId, anonymous: !vote.anonymous })
   }
 
+  function sendGuess(act: string, data: Record<string, unknown> = {}) {
+    // ts orders the shared event log; never go below what we've already seen so a
+    // client with a slow clock can't sort its reply before the event it reacted to
+    const ts = Math.max(Date.now(), ...guessEvents.map((e) => e.body.ts + 1))
+    nostr.publish('guess', { act, ts, gameId: guess?.gameId, ...data }, nostr.MOVE_KIND)
+  }
+
   function publishWheelItems(items: WheelItem[]) {
     if (Array.isArray(items)) nostr.publish('wheel_set', { items })
   }
 
   const meProps: Me = { id: nostr.myPubkey, name: me?.name ?? '', emoji: me?.emoji ?? '' }
 
+  const rise = (i: number) => ({
+    initial: { opacity: 0, y: 30 },
+    animate: { opacity: 1, y: 0 },
+    transition: { type: 'spring' as const, stiffness: 120, damping: 18, delay: 0.08 * i },
+  })
+
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <Sparkles />
-      <div className="relative mx-auto max-w-5xl px-4 py-8">
-        <header className="mb-8 text-center">
-          <div className="flex items-center justify-end gap-2">
+      <div className="relative mx-auto max-w-6xl px-4 py-6 sm:py-8">
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <motion.h1
+            className="flex items-center gap-3 text-4xl font-extrabold sm:text-5xl"
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <motion.span
+              className="inline-block"
+              initial={{ rotate: -40, scale: 0 }}
+              animate={{ rotate: -8, scale: 1 }}
+              whileHover={{ rotate: [0, -15, 15, 0] }}
+              transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+            >
+              🥗
+            </motion.span>
+            <GradientText>Party Tools</GradientText>
+          </motion.h1>
+          <div className="flex items-center gap-3">
+            {me && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="sketch inline-flex items-center gap-2 px-3 py-1"
+              >
+                <span className="text-xl">{me.emoji}</span>
+                <span className="font-semibold">{me.name}</span>
+                <span className="rounded bg-[#fde68a] px-1.5 font-mono text-xs text-[#23201c]">#{nostr.ROOM}</span>
+              </motion.div>
+            )}
             <ThemeToggle theme={theme} onToggle={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))} />
           </div>
-          <h1 className="text-4xl font-extrabold sm:text-5xl">
-            🥗 <span className="bg-gradient-to-r from-amber-500 via-pink-500 to-sky-500 dark:from-amber-200 dark:via-pink-300 dark:to-sky-300 bg-clip-text text-transparent">Party Tools</span>
-          </h1>
-          {me && (
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-4 py-1.5 text-sm dark:border-white/10 dark:bg-white/5">
-              <span className="text-xl">{me.emoji}</span>
-              <span className="font-semibold">{me.name}</span>
-            </div>
-          )}
         </header>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <DuckRace race={race} me={meProps} canStart={canStart} onHostRace={createRace} onStart={startRace} />
-            <WheelOfFortune wheelSpins={wheelSpins} items={wheelItems} onSetItems={publishWheelItems} me={meProps} onSpin={() => nostr.publish('wheel_spin', { name: me?.name ?? '', emoji: me?.emoji ?? '' })} />
-            <Voting
-              vote={vote}
-              me={meProps}
-              users={users}
-              onCreate={createPoll}
-              onVote={voteTopic}
-              onClose={closePoll}
-              onToggleAnonymous={toggleAnonymous}
-            />
-            <Calendar />
+          <div className="space-y-6 lg:col-span-2">
+            <motion.div {...rise(0)}>
+              <GuessWho game={guess} me={meProps} onAct={sendGuess} />
+            </motion.div>
+            <motion.div {...rise(1)}>
+              <DuckRace race={race} me={meProps} canStart={canStart} onHostRace={createRace} onStart={startRace} />
+            </motion.div>
+            <motion.div {...rise(2)}>
+              <WheelOfFortune wheelSpins={wheelSpins} items={wheelItems} onSetItems={publishWheelItems} me={meProps} onSpin={() => nostr.publish('wheel_spin', { name: me?.name ?? '', emoji: me?.emoji ?? '' })} />
+            </motion.div>
+            <motion.div {...rise(3)}>
+              <Voting
+                vote={vote}
+                me={meProps}
+                users={users}
+                onCreate={createPoll}
+                onVote={voteTopic}
+                onClose={closePoll}
+                onToggleAnonymous={toggleAnonymous}
+              />
+            </motion.div>
+            <motion.div {...rise(4)}>
+              <Calendar />
+            </motion.div>
           </div>
-          <div className="h-max">
-            <OnlineUsers users={users} />
+          <div className="order-first space-y-6 lg:order-none lg:sticky lg:top-6 lg:h-max">
+            <motion.div {...rise(0)}>
+              <RoomCard />
+            </motion.div>
+            <motion.div {...rise(1)}>
+              <OnlineUsers users={users} />
+            </motion.div>
           </div>
         </div>
 
-        <footer className="mt-10 text-center text-xs text-slate-500 dark:text-slate-500">
-          Race positions are not sent over Nostr — every client calculates them
-          from the shared race definition and start time, so everyone sees the same race.
+        <footer className="mt-10 text-center text-sm opacity-60">
+          Only people with the same invite code share this room. Everything syncs live over Nostr — no server needed.
         </footer>
       </div>
       <Toasts toasts={toasts} />

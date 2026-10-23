@@ -16,6 +16,13 @@ hears about it instantly.
   badge (`Rocket Finish`, `Fast Start`, `Steady`, `Cruiser`, `Slowpoke`). The
   winner is a **dark horse** ~46% of the time — ducks that look slow from the
   start can surge to win.
+- **Rooms + invite code** — every visit gets a 5-character room code in the URL
+  (`?room=ABCDE`). Copy the invite link to bring friends in; only people with
+  the same code sync together. Type a friend's code to switch rooms.
+- **Who Am I?** — players sit around a table and each secretly writes a name for
+  the player on their left. You see everyone's name except your own. On your
+  turn ask questions, then **End turn**, or **hold** "I got it!" once you've
+  guessed right — everyone else keeps going. The host sets how many rounds.
 - **Wheel of Fortune** — spin and everyone lands on the **same segment**,
   announced only after the wheel stops.
 - **No server to run** — just `npm run dev`.
@@ -26,7 +33,9 @@ Nostr is just an append-only pub/sub, so raw event streams don't give you
 "shared state". This app flips that:
 
 - Messages are broadcast on a custom event kind (`31337`) tagged
-  `duck-river-party` on a free relay.
+  `<VITE_GAME_TAG>:<ROOM>` on free relays. Who Am I? moves use the regular
+  kind `7331`, because relays keep only each user's latest `31337` event and
+  the game needs its whole move log to rebuild state after a reload.
 - **Only the *input* is sent**, not the animation state.
   - The duck race broadcasts the race **definition** (each duck's speed
     condition) and the **start time**. Each client integrates the **same**

@@ -159,7 +159,7 @@ export default function Voting({
                     {closed ? (
                       <div className="mt-2 h-1.5 overflow-hidden rounded bg-slate-200 dark:bg-white/10">
                         <motion.div
-                          className="h-full rounded bg-gradient-to-r from-sky-500 to-emerald-400"
+                          className="h-full rounded bg-[#1fa65a]"
                           initial={{ width: 0 }}
                           animate={{ width: `${pct}%` }}
                           transition={{ duration: 0.5 }}
@@ -189,7 +189,7 @@ export default function Voting({
           {closed && (
             <button
               onClick={() => setCreating(true)}
-              className="mt-4 w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110"
+              className="sketch-btn btn-blue mt-4 w-full px-4 py-2 text-lg"
             >
               + Start a New Vote
             </button>
